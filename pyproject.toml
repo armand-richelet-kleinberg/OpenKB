@@ -4,7 +4,9 @@ build-backend = "hatchling.build"
 
 [project]
 name = "openkb"
-dynamic = ["version"]
+# Fork release: a static version so an install from a commit or an archive reports the
+# same identity a tag would (the upstream tag-derived version needs the tag to be fetched).
+version = "0.4.5+ark.1"
 description = "OpenKB: Open LLM Knowledge Base, powered by PageIndex"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -71,9 +73,6 @@ dev = [
     "mypy==1.15.0",
     "types-PyYAML==6.0.12.20260518",
 ]
-
-[tool.hatch.version]
-source = "vcs"
 
 [tool.hatch.build.targets.wheel]
 packages = ["openkb"]
