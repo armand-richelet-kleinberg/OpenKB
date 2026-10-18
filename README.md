@@ -109,6 +109,8 @@ OpenKB supports [multiple LLM providers](https://docs.litellm.ai/docs/providers)
 
 Set your model during `openkb init` or in [`.openkb/config.yaml`](#configuration) using the `provider/model` LiteLLM format (e.g. `anthropic/claude-sonnet-4-6`). OpenAI models can omit the prefix (e.g. `gpt-5.4`).
 
+**No API key? Use a CLI you are signed in to.** `claude_cli/<model>` runs through Claude Code and `copilot_cli/<model>` through the GitHub Copilot CLI (personal or enterprise, including GitHub Enterprise Cloud with data residency). A `data_governance` block can require an enterprise deployment and an allowed processing region, and records the evidence. See [docs/cli-backends.md](docs/cli-backends.md).
+
 Create a `.env` file with your LLM API key:
 
 ```bash

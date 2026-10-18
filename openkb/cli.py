@@ -45,6 +45,14 @@ logging.getLogger("LiteLLM").addFilter(_SuppressLiteLLMPreloadWarnings())
 import litellm
 
 litellm.suppress_debug_info = True
+
+# Agent CLIs (Claude Code, GitHub Copilot CLI, declared others) as model backends: the
+# built-in profiles are registered at import so every LiteLLM path can reach them; a
+# knowledge base's own cli_backends / data_governance blocks are applied in _setup_llm_key.
+from openkb import llm_cli as _llm_cli  # noqa: E402
+from openkb.llm_cli import cli_commands as _cli_backend_commands  # noqa: E402
+
+_llm_cli.configure()
 from dotenv import load_dotenv
 
 from openkb.agent.compiler import DEFAULT_COMPILE_CONCURRENCY, compile_long_doc
@@ -186,6 +194,7 @@ def _setup_llm_key(kb_dir: Path | None = None) -> None:
             config = load_config(config_path)
             model = config.get("model", "")
             provider = _extract_provider(str(model))
+            _llm_cli.configure(config, kb_dir)
             extra_headers = resolve_extra_headers(config)
             timeout = resolve_timeout(config)
             parallel_tool_calls, parallel_tool_calls_explicit = resolve_parallel_tool_calls(config)
@@ -209,7 +218,7 @@ def _setup_llm_key(kb_dir: Path | None = None) -> None:
         # so the warning is skipped for them.
         check_keys = (f"{provider.upper()}_API_KEY",) if provider else _KNOWN_PROVIDER_KEYS
         has_key = any(os.environ.get(k) for k in check_keys)
-        if not has_key and provider not in _OAUTH_PROVIDERS:
+        if not has_key and provider not in _OAUTH_PROVIDERS and provider not in _llm_cli.cli_provider_names():
             click.echo(
                 "Warning: No LLM API key found. Set one of:\n"
                 f"  1. {kb_dir / '.env' if kb_dir else '<kb_dir>/.env'} — LLM_API_KEY=sk-...\n"
@@ -927,6 +936,8 @@ def init(model, language):
     click.echo("  Anthropic: anthropic/claude-sonnet-4-6, anthropic/claude-opus-4-6")
     click.echo("  Gemini:    gemini/gemini-3.1-pro-preview, gemini/gemini-3-flash-preview")
     click.echo("  DeepSeek:  deepseek/deepseek-v4-flash, deepseek/deepseek-v4-pro")
+    click.echo("  CLI:       claude_cli/sonnet (Claude Code), copilot_cli/gpt-5.4 (GitHub Copilot CLI)")
+    click.echo("             - uses the account the CLI is signed in to; see docs/cli-backends.md")
     click.echo("  Others:    see https://docs.litellm.ai/docs/providers")
     click.echo()
     if model is None and _stdin_is_tty():
@@ -939,12 +950,17 @@ def init(model, language):
         )
     if not model:
         model = DEFAULT_CONFIG["model"]
-    api_key = click.prompt(
-        "LLM API Key (saved to .env, enter to skip)",
-        default="",
-        hide_input=True,
-        show_default=False,
-    ).strip()
+    if _llm_cli.is_cli_model(model):
+        # A CLI backend authenticates with the CLI's own sign-in; OpenKB holds no key.
+        api_key = ""
+        click.echo("CLI backend: no API key needed. Sign in with the CLI, then run `openkb backend doctor`.")
+    else:
+        api_key = click.prompt(
+            "LLM API Key (saved to .env, enter to skip)",
+            default="",
+            hide_input=True,
+            show_default=False,
+        ).strip()
     if language is None and _stdin_is_tty():
         language = _coerce_language(
             click.prompt(
@@ -2951,3 +2967,7 @@ def _save_deck_iteration(kb_dir: Path, deck_name: str) -> Path | None:
     dest = ws / f"iteration-{next_n}"
     shutil.copytree(src, dest)
     return dest
+
+
+# `openkb backend` (CLI model backends): show / doctor / login.
+cli.add_command(_cli_backend_commands.backend)

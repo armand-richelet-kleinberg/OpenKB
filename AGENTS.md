@@ -29,6 +29,7 @@ humans steer, agents execute. Optimize changes for agent legibility.
 - `schema.py` — page/content schema constants & helpers.
 - `lint.py` — structural wiki lint (broken links, orphans, index sync).
 - `tree_renderer.py`, `visualize.py`, `watcher.py` — rendering / graph / file watch.
+- `llm_cli/` — agent CLIs (Claude Code, Copilot CLI, declared others) as LiteLLM providers, with data-governance checks; see `docs/cli-backends.md`.
 - `agent/compiler.py` — LLM wiki compiler *(large; see tech-debt)*.
 - `agent/linter.py` — semantic (LLM) wiki lint (contradictions, gaps, staleness).
 - `agent/chat.py`, `agent/chat_session.py` — chat over the wiki *(chat.py large)*.
